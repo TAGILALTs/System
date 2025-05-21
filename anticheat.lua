@@ -1,6 +1,5 @@
--- Клиентский скрипт (LocalScript)
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
+local a = game.ReplicatedStorage
+local b = "Check"
 
 -- Список обязательных Remote-объектов
 local REQUIRED_REMOTES = {
@@ -11,48 +10,22 @@ local REQUIRED_REMOTES = {
     ["PlayerAdded"] = "RemoteEvent"
 }
 
--- Запрещенные сервисы (должны совпадать с серверными)
-local RESTRICTED_SERVICES = {
-    "Workspace",
-    "ServerScriptService",
-    "ServerStorage",
-    "ReplicatedStorage",
-    "StarterPack",
-    "StarterPlayer",
-    "StarterGui",
-    "Lighting",
-    "Players",
-    "Teams"
-}
-
--- Проверка, является ли объект запрещенным сервисом
-local function isRestrictedService(instance)
-    for _, serviceName in ipairs(RESTRICTED_SERVICES) do
-        if instance.Name == serviceName then
-            return true
-        end
-    end
-    return false
-end
-
--- Функция восстановления Remote-объектов с Key
+-- Функция проверки и восстановления Remote-объектов
 local function ensureRemotes()
     for remoteName, remoteType in pairs(REQUIRED_REMOTES) do
-        local remote = ReplicatedStorage:FindFirstChild(remoteName)
+        local remote = a:FindFirstChild(remoteName)
         
-        -- Восстановление Remote
         if not remote or not remote:IsA(remoteType) then
             if remote then remote:Destroy() end
             
-            remote = Instance.new(remoteType)
-            remote.Name = remoteName
-            remote.Parent = ReplicatedStorage
+            if remoteType == "RemoteFunction" then
+                remote = Instance.new("RemoteFunction")
+            else
+                remote = Instance.new("RemoteEvent")
+            end
             
-            -- Добавляем Key (будет обновлен при следующей синхронизации)
-            local key = Instance.new("StringValue")
-            key.Name = "Key"
-            key.Value = "TEMP_KEY"
-            key.Parent = remote
+            remote.Name = remoteName
+            remote.Parent = a
             
             if remoteName == "Check" then
                 remote.OnClientInvoke = function()
@@ -60,24 +33,13 @@ local function ensureRemotes()
                 end
             end
         end
-        
-        -- Проверка Key для существующих Remote
-        if remote then
-            local key = remote:FindFirstChild("Key")
-            if not key then
-                key = Instance.new("StringValue")
-                key.Name = "Key"
-                key.Value = "TEMP_KEY"
-                key.Parent = remote
-            end
-        end
     end
 end
 
--- Инициализация Remote-объектов
+-- Первичная проверка
 ensureRemotes()
 
--- Фоновая проверка Remote-объектов
+-- Фоновый watchdog
 task.spawn(function()
     while true do
         ensureRemotes()
@@ -85,117 +47,117 @@ task.spawn(function()
     end
 end)
 
--- Получение текущего ключа с сервера
-local function getServerKey()
-    local success, key = pcall(function()
-        return ReplicatedStorage.GetKey:InvokeServer()
-    end)
-    return success and key or nil
+-- Оригинальный код
+a[b].OnClientInvoke = function()
+    local c = 1 + 1
+    local d = c - 1
+    return d == 1
 end
 
--- Проверка цепочки родителей
-local function getParentChain(instance)
-    local chain = {}
-    local parent = instance.Parent
-    while parent do
-        table.insert(chain, parent)
-        parent = parent.Parent
+local function a(b)
+    local c = {}
+    local d = b.Parent
+    while d do
+        table.insert(c, d)
+        d = d.Parent
     end
-    return chain
+    return c
 end
 
--- Проверка имени объекта
-local IGNORED_OBJECTS = {
-    -- ... (ваш список игнорируемых объектов)
+local e = game:GetService("ReplicatedStorage")
+local f = e:WaitForChild("CheckChildExists")
+
+local g = {
+    "FrameRateManager",
+    "DeviceFeatureLevel",
+    "DeviceShadingLanguage",
+    "AverageQualityLevel",
+    "AutoQuality",
+    "NumberOfSettles",
+    "AverageSwitches",
+    "FramebufferWidth",
+    "FramebufferHeight",
+    "Batches",
+    "Indices",
+    "MaterialChanges",
+    "VideoMemoryInMB",
+    "AverageFPS",
+    "FrameTimeVariance",
+    "FrameSpikeCount",
+    "RenderAverage",
+    "PrepareAverage",
+    "PerformAverage",
+    "AveragePresent",
+    "AverageGPU",
+    "RenderThreadAverage",
+    "TotalFrameWallAverage",
+    "PerformVariance",
+    "PresentVariance",
+    "GpuVariance",
+    "MsFrame0",
+    "MsFrame1",
+    "MsFrame2",
+    "MsFrame3",
+    "MsFrame4",
+    "MsFrame5",
+    "MsFrame6",
+    "MsFrame7",
+    "MsFrame8",
+    "MsFrame9",
+    "MsFrame10",
+    "MsFrame11",
+    "Render",
+    "Memory",
+    "Video",
+    "CursorImage",
+    "LanguageService"
 }
 
-local function isIgnoredObject(name)
-    for _, objName in ipairs(IGNORED_OBJECTS) do
-        if name == objName then
+local function h(i)
+    for _, j in ipairs(g) do
+        if i == j then
             return true
         end
     end
     return false
 end
 
--- Основной мониторинг
 task.wait(1)
 
-game.DescendantAdded:Connect(function(descendant)
-    -- Пропускаем системные объекты
-    if isIgnoredObject(descendant.Name) or isRestrictedService(descendant) then
+game.DescendantAdded:Connect(function(k)
+    -- Проверка на добавление неавторизованных Remote-объектов
+    if (k:IsA("RemoteEvent") or k:IsA("RemoteFunction")) and not REQUIRED_REMOTES[k.Name] then
+        k:Destroy()
+        e.AntiCheat:FireServer("REMOTE_TAMPERING", "Unauthorized remote added: "..k.Name)
         return
     end
 
-    -- Проверка Remote-объектов
-    if (descendant:IsA("RemoteEvent") or (descendant:IsA("RemoteFunction")) then
-        if not REQUIRED_REMOTES[descendant.Name] then
-            ReplicatedStorage.AntiCheat:FireServer(
-                "REMOTE_TAMPERING", 
-                "Неавторизованный Remote объект: "..descendant.Name
-            )
+    if h(k.Name) then return end
+
+    local l = f:InvokeServer(k.Parent.Name, k.Name)
+
+    local m = a(k)
+    for _, n in ipairs(m) do
+        if n.Name == "ReplicatedStorage" then
+            e.AntiCheat:FireServer("???", "using exploit.")
             return
         end
     end
 
-    -- Проверка Key
-    local serverKey = getServerKey()
-    if not serverKey then return end
+    local o = k:FindFirstChild("Key")
+    local p = e.GetKey:InvokeServer()
 
-    local instanceKey = descendant:FindFirstChild("Key")
-    
-    -- Если это сам Key
-    if descendant.Name == "Key" then
-        if descendant.Value ~= serverKey then
-            ReplicatedStorage.AntiCheat:FireServer(
-                descendant.Parent.Name,
-                "Неверный Key: "..descendant.Value
-            )
+    if o and l then
+        if o.Value ~= p then
+            e.AntiCheat:FireServer(k.Name, "adding instance with wrong key - exploit.")
         end
-    -- Если Key отсутствует у объекта
-    elseif not instanceKey and not isRestrictedService(descendant) then
-        ReplicatedStorage.AntiCheat:FireServer(
-            descendant.Name,
-            "Отсутствует Key"
-        )
-    end
-end)
-
--- Проверка существующих объектов при загрузке
-task.spawn(function()
-    task.wait(3) -- Даем время на инициализацию
-    
-    local serverKey = getServerKey()
-    if not serverKey then return end
-
-    for _, instance in ipairs(game:GetDescendants()) do
-        if not isIgnoredObject(instance.Name) and not isRestrictedService(instance) then
-            local key = instance:FindFirstChild("Key")
-            
-            -- Проверка для Remote-объектов
-            if (instance:IsA("RemoteEvent") or instance:IsA("RemoteFunction")) then
-                if not REQUIRED_REMOTES[instance.Name] then
-                    ReplicatedStorage.AntiCheat:FireServer(
-                        "REMOTE_TAMPERING", 
-                        "Обнаружен неавторизованный Remote: "..instance.Name
-                    )
-                end
-            end
-            
-            -- Проверка Key
-            if instance.Name == "Key" then
-                if instance.Value ~= serverKey then
-                    ReplicatedStorage.AntiCheat:FireServer(
-                        instance.Parent.Name,
-                        "Неверный Key при загрузке: "..instance.Value
-                    )
-                end
-            elseif not key and not isRestrictedService(instance) then
-                ReplicatedStorage.AntiCheat:FireServer(
-                    instance.Name,
-                    "Отсутствует Key при загрузке"
-                )
+    elseif k.Name == "Key" then
+        if k.Value then
+            if k.Value ~= p then
+                e.AntiCheat:FireServer(k.Name, "adding instance with wrong key - exploit.")
             end
         end
+    elseif not o and not l then
+        e.AntiCheat:FireServer(k.Name, "adding instance with exploit.")
     end
 end)

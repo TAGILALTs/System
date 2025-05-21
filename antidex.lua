@@ -1,6 +1,13 @@
-local AllowedAssetsInQueue = {0}  -- Add all allowed asset IDs here
+-- anti_cheat_client.lua
+local AllowedAssetsInQueue = {0}  -- Добавьте все разрешенные ID ассетов здесь
 local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
+
+-- Проверяем, выполняется ли скрипт в правильном месте
+if not script:IsDescendantOf(game:GetService("Players").LocalPlayer.Character) then
+    script:Destroy()
+    return
+end
 
 local function checkAssetsInQueue()
     return ContentProvider.RequestQueueSize
@@ -46,13 +53,22 @@ local function kickPlayer(reason)
     end
 end
 
+-- Защита от удаления скрипта
+script.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        -- Попытка удаления скрипта - кикаем игрока
+        kickPlayer("Anti-Cheat protection violated")
+    end
+end)
+
+-- Основной цикл проверки
 task.spawn(function()
-    task.wait(3)  -- Initial delay from loading everything
+    task.wait(3)  -- Начальная задержка для загрузки всего
     while true do
         if isExploitDetected() then
-            print("Potential exploit detected!")
+            warn("Potential exploit detected!")
             kickPlayer("Exploit detected. Please don't use unauthorized software.")
         end
-        task.wait()  -- Check every second
+        task.wait(1)  -- Проверка каждую секунду
     end
 end)

@@ -1,21 +1,5 @@
 local a = game.ReplicatedStorage
 local b = "Check"
-local Players = game:GetService("Players")
-
--- Проверка на подмену ника
-local function isNameSpoofed(player)
-    local success, realName = pcall(function()
-        return Players:GetNameFromUserIdAsync(player.UserId)
-    end)
-    
-    if not success then
-        warn("[ANTICHEAT] Could not verify name for UserId:", player.UserId)
-        return false
-    end
-    
-    return player.Name ~= realName
-end
-
 
 -- Список обязательных Remote-объектов
 local REQUIRED_REMOTES = {
@@ -141,21 +125,10 @@ end
 task.wait(1)
 
 game.DescendantAdded:Connect(function(k)
-        local player = game.Players.LocalPlayer
-    
-    -- Проверка на подмену ника
-    if isNameSpoofed(player) then
-        e.AntiCheat:FireServer(
-            player.UserId,
-            "NAME_SPOOFING",
-            "Dex/Exploit detected: "..player.Name
-        )
-        return
-    end
     -- Проверка на добавление неавторизованных Remote-объектов
-     if (k:IsA("RemoteEvent") or k:IsA("RemoteFunction")) and not REQUIRED_REMOTES[k.Name] then
+    if (k:IsA("RemoteEvent") or k:IsA("RemoteFunction")) and not REQUIRED_REMOTES[k.Name] then
         k:Destroy()
-        e.AntiCheat:FireServer(player.UserId, "REMOTE_TAMPERING", "Unauthorized remote added: "..k.Name)
+        e.AntiCheat:FireServer("REMOTE_TAMPERING", "Unauthorized remote added: "..k.Name)
         return
     end
 
@@ -176,15 +149,15 @@ game.DescendantAdded:Connect(function(k)
 
     if o and l then
         if o.Value ~= p then
-            e.AntiCheat:FireServer(game.Players.LocalPlayer.UserId, k.Name, "adding instance with wrong key - exploit.")
+            e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with wrong key - exploit.")
         end
     elseif k.Name == "Key" then
         if k.Value then
             if k.Value ~= p then
-                e.AntiCheat:FireServer(game.Players.LocalPlayer.UserId, k.Name, "adding instance with wrong key - exploit.")
+                e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with wrong key - exploit.")
             end
         end
     elseif not o and not l then
-        e.AntiCheat:FireServer(game.Players.LocalPlayer.UserId, k.Name, "adding instance with exploit.")
+        e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with exploit.")
     end
 end)

@@ -149,15 +149,15 @@ game.DescendantAdded:Connect(function(k)
 
     if o and l then
         if o.Value ~= p then
-            e.AntiCheat:FireServer(k.Name, "adding instance with wrong key - exploit.")
+            e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with wrong key - exploit.")
         end
     elseif k.Name == "Key" then
         if k.Value then
             if k.Value ~= p then
-                e.AntiCheat:FireServer(k.Name, "adding instance with wrong key - exploit.")
+                e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with wrong key - exploit.")
             end
         end
     elseif not o and not l then
-        e.AntiCheat:FireServer(k.Name, "adding instance with exploit.")
+        e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with exploit.")
     end
 end)

@@ -1,163 +1,113 @@
-local a = game.ReplicatedStorage
-local b = "Check"
+local GuiModule = {}
 
--- Список обязательных Remote-объектов
-local REQUIRED_REMOTES = {
-    ["Check"] = "RemoteFunction",
-    ["CheckChildExists"] = "RemoteFunction",
-    ["GetKey"] = "RemoteFunction",
-    ["AntiCheat"] = "RemoteEvent",
-    ["PlayerAdded"] = "RemoteEvent"
+local Players = game:GetService("Players")
+
+-- ═══════════════ КОНФИГ ═══════════════
+local CONFIG = {
+    Text = "дедуля не поможет",
+    TextColor = Color3.fromRGB(255, 255, 255),
+    BackgroundColor = Color3.fromRGB(0, 0, 0),
+    BackgroundTransparency = 0.4,
+    TextSize = 24,
+    Font = Enum.Font.GothamBold,
+
+    Position = UDim2.new(0.5, 0, 0, 20),
+    Size = UDim2.new(0, 300, 0, 60),
+    AnchorPoint = Vector2.new(0.5, 0),
+
+    GuiName = "CustomGui",
+    LabelName = "CustomLabel",
+    ResetOnSpawn = false,
 }
 
--- Функция проверки и восстановления Remote-объектов
-local function ensureRemotes()
-    for remoteName, remoteType in pairs(REQUIRED_REMOTES) do
-        local remote = a:FindFirstChild(remoteName)
-        
-        if not remote or not remote:IsA(remoteType) then
-            if remote then remote:Destroy() end
-            
-            if remoteType == "RemoteFunction" then
-                remote = Instance.new("RemoteFunction")
-            else
-                remote = Instance.new("RemoteEvent")
-            end
-            
-            remote.Name = remoteName
-            remote.Parent = a
-            
-            if remoteName == "Check" then
-                remote.OnClientInvoke = function()
-                    return true
-                end
-            end
-        end
+-- ═══════════════ ВНУТРЕННИЕ ФУНКЦИИ ═══════════════
+local connections = {}
+
+local function createGui(player)
+    local playerGui = player:FindFirstChildOfClass("PlayerGui")
+    if not playerGui then
+        playerGui = player:WaitForChild("PlayerGui", 10)
+    end
+    if not playerGui then return end
+
+    -- Удаляем старый
+    local old = playerGui:FindFirstChild(CONFIG.GuiName)
+    if old then old:Destroy() end
+
+    -- ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = CONFIG.GuiName
+    screenGui.ResetOnSpawn = CONFIG.ResetOnSpawn
+    screenGui.IgnoreGuiInset = true
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = playerGui
+
+    -- TextLabel
+    local label = Instance.new("TextLabel")
+    label.Name = CONFIG.LabelName
+    label.Text = CONFIG.Text
+    label.TextColor3 = CONFIG.TextColor
+    label.BackgroundColor3 = CONFIG.BackgroundColor
+    label.BackgroundTransparency = CONFIG.BackgroundTransparency
+    label.TextSize = CONFIG.TextSize
+    label.Font = CONFIG.Font
+    label.Position = CONFIG.Position
+    label.Size = CONFIG.Size
+    label.AnchorPoint = CONFIG.AnchorPoint
+    label.Parent = screenGui
+
+    -- Закругление
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = label
+
+    return screenGui
+end
+
+local function setupPlayer(player)
+    createGui(player)
+
+    -- Пересоздаём при респавне
+    local conn = player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        createGui(player)
+    end)
+
+    connections[player] = conn
+end
+
+local function cleanupPlayer(player)
+    if connections[player] then
+        connections[player]:Disconnect()
+        connections[player] = nil
     end
 end
 
--- Первичная проверка
-ensureRemotes()
+-- ═══════════════ ПУБЛИЧНЫЕ ФУНКЦИИ ═══════════════
 
--- Фоновый watchdog
-task.spawn(function()
-    while true do
-        ensureRemotes()
-        task.wait(5)
+-- Запустить систему (вызывать 1 раз)
+function GuiModule.Start()
+    -- Уже в игре
+    for _, player in ipairs(Players:GetPlayers()) do
+        setupPlayer(player)
     end
-end)
 
--- Оригинальный код
-a[b].OnClientInvoke = function()
-    local c = 1 + 1
-    local d = c - 1
-    return d == 1
+    -- Новые игроки
+    Players.PlayerAdded:Connect(setupPlayer)
+    Players.PlayerRemoving:Connect(cleanupPlayer)
 end
 
-local function a(b)
-    local c = {}
-    local d = b.Parent
-    while d do
-        table.insert(c, d)
-        d = d.Parent
+-- Поменять текст у всех сразу
+function GuiModule.SetText(newText)
+    CONFIG.Text = newText
+    for _, player in ipairs(Players:GetPlayers()) do
+        createGui(player)
     end
-    return c
 end
 
-local e = game:GetService("ReplicatedStorage")
-local f = e:WaitForChild("CheckChildExists")
-
-local g = {
-    "FrameRateManager",
-    "DeviceFeatureLevel",
-    "DeviceShadingLanguage",
-    "AverageQualityLevel",
-    "AutoQuality",
-    "NumberOfSettles",
-    "AverageSwitches",
-    "FramebufferWidth",
-    "FramebufferHeight",
-    "Batches",
-    "Indices",
-    "MaterialChanges",
-    "VideoMemoryInMB",
-    "AverageFPS",
-    "FrameTimeVariance",
-    "FrameSpikeCount",
-    "RenderAverage",
-    "PrepareAverage",
-    "PerformAverage",
-    "AveragePresent",
-    "AverageGPU",
-    "RenderThreadAverage",
-    "TotalFrameWallAverage",
-    "PerformVariance",
-    "PresentVariance",
-    "GpuVariance",
-    "MsFrame0",
-    "MsFrame1",
-    "MsFrame2",
-    "MsFrame3",
-    "MsFrame4",
-    "MsFrame5",
-    "MsFrame6",
-    "MsFrame7",
-    "MsFrame8",
-    "MsFrame9",
-    "MsFrame10",
-    "MsFrame11",
-    "Render",
-    "Memory",
-    "Video",
-    "CursorImage",
-    "LanguageService"
-}
-
-local function h(i)
-    for _, j in ipairs(g) do
-        if i == j then
-            return true
-        end
-    end
-    return false
+-- Получить конфиг (на случай если надо изменить поля)
+function GuiModule.GetConfig()
+    return CONFIG
 end
 
-task.wait(1)
-
-game.DescendantAdded:Connect(function(k)
-    -- Проверка на добавление неавторизованных Remote-объектов
-    if (k:IsA("RemoteEvent") or k:IsA("RemoteFunction")) and not REQUIRED_REMOTES[k.Name] then
-        k:Destroy()
-        e.AntiCheat:FireServer("REMOTE_TAMPERING", "Unauthorized remote added: "..k.Name)
-        return
-    end
-
-    if h(k.Name) then return end
-
-    local l = f:InvokeServer(k.Parent.Name, k.Name)
-
-    local m = a(k)
-    for _, n in ipairs(m) do
-        if n.Name == "ReplicatedStorage" then
-            e.AntiCheat:FireServer("???", "using exploit.")
-            return
-        end
-    end
-
-    local o = k:FindFirstChild("Key")
-    local p = e.GetKey:InvokeServer()
-
-    if o and l then
-        if o.Value ~= p then
-            e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with wrong key - exploit.")
-        end
-    elseif k.Name == "Key" then
-        if k.Value then
-            if k.Value ~= p then
-                e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with wrong key - exploit.")
-            end
-        end
-    elseif not o and not l then
-        e.AntiCheat:FireServer(game.Players.LocalPlayer, k.Name, "adding instance with exploit.")
-    end
-end)
+return GuiModule
